@@ -1,0 +1,34 @@
+{
+  "name": "imagination-archive",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "npm run sync:notion && next build",
+    "start": "next start",
+    "lint": "eslint",
+    "sync:obsidian": "node scripts/sync-content.mjs",
+    "sync:notion": "node --env-file=.env.local scripts/sync-notion.mjs",
+    "seed:notion": "node --env-file=.env.local scripts/seed-notion.mjs"
+  },
+  "dependencies": {
+    "@notionhq/client": "^5.22.0",
+    "@upstash/redis": "^1.38.0",
+    "next": "16.2.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-force-graph-3d": "^1.29.1",
+    "three": "^0.184.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/three": "^0.184.1",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

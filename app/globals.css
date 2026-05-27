@@ -1,0 +1,162 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0a0a0a;
+  --fg: #ededed;
+  --muted: #8a8a8a;
+  --accent: #f5f5f0;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --font-display: "Inter", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+}
+
+/* hide horizontal overflow caused by parallax translations */
+body {
+  overflow-x: hidden;
+}
+
+/* numeric tabular display for chapter numbers */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* reveal-on-scroll utility — toggled by IntersectionObserver */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1),
+              transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.reveal.is-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-slow {
+  transition-duration: 1400ms;
+}
+
+/* image card hover */
+.img-card {
+  transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.img-card:hover {
+  transform: scale(1.015);
+}
+
+/* hero text gradient mask */
+.gradient-mask {
+  background: linear-gradient(180deg, transparent 0%, rgba(10,10,10,0.0) 60%, rgba(10,10,10,0.85) 100%);
+}
+
+/* sticky chapter pin — uses native sticky with custom heights */
+.pin {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Dice throw animation: throw arc → tumble → settles dead-centre of viewport */
+@keyframes diceThrow {
+  0% {
+    transform:
+      translate3d(0, 0, 0)
+      rotateX(var(--start-x, 0deg))
+      rotateY(var(--start-y, 0deg))
+      rotateZ(0deg);
+    animation-timing-function: cubic-bezier(0.34, 0.65, 0.5, 1);
+  }
+  14% {
+    /* apex — up & slightly back */
+    transform:
+      translate3d(20px, -200px, -110px)
+      rotateX(calc(var(--start-x, 0deg) + 220deg))
+      rotateY(calc(var(--start-y, 0deg) + 260deg))
+      rotateZ(120deg);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.85, 0.4);
+  }
+  48% {
+    /* mid-fall — descending fast, tumbling */
+    transform:
+      translate3d(-15px, 30px, 60px)
+      rotateX(calc(var(--end-x, 0deg) + 560deg))
+      rotateY(calc(var(--end-y, 0deg) + 500deg))
+      rotateZ(420deg);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.5);
+  }
+  64% {
+    /* "impact" near centre */
+    transform:
+      translate3d(0, 55px, 0)
+      rotateX(calc(var(--end-x, 0deg) + 540deg))
+      rotateY(calc(var(--end-y, 0deg) + 480deg))
+      rotateZ(580deg);
+    animation-timing-function: cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+  74% {
+    /* bounce slightly above centre */
+    transform:
+      translate3d(12px, -18px, 0)
+      rotateX(calc(var(--end-x, 0deg) + 720deg))
+      rotateY(calc(var(--end-y, 0deg) + 600deg))
+      rotateZ(680deg);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.85, 0.4);
+  }
+  86% {
+    /* small secondary bounce */
+    transform:
+      translate3d(-4px, 14px, 0)
+      rotateX(var(--end-x, 0deg))
+      rotateY(var(--end-y, 0deg))
+      rotateZ(720deg);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  }
+  100% {
+    /* final resting place — exact viewport centre */
+    transform:
+      translate3d(0, 0, 0)
+      rotateX(var(--end-x, 0deg))
+      rotateY(var(--end-y, 0deg))
+      rotateZ(720deg);
+  }
+}
+
+/* View transition: morph concept cover from dice face → detail hero. Longer + smoother. */
+::view-transition-group(*) {
+  animation-duration: 900ms;
+  animation-timing-function: cubic-bezier(0.5, 0, 0.25, 1);
+}
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: 900ms;
+  animation-timing-function: cubic-bezier(0.5, 0, 0.25, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  html { scroll-behavior: auto; }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0s !important;
+  }
+}
