@@ -8,8 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "sync:obsidian": "node scripts/sync-content.mjs",
-    "sync:notion": "node --env-file=.env.local scripts/sync-notion.mjs",
-    "seed:notion": "node --env-file=.env.local scripts/seed-notion.mjs"
+    "sync:notion": "node scripts/sync-notion.mjs",
+    "seed:notion": "node scripts/seed-notion.mjs"
   },
   "dependencies": {
     "@notionhq/client": "^5.22.0",

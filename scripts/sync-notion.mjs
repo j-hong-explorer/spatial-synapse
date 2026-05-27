@@ -22,6 +22,10 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// Load .env.local if it exists (local dev). On Vercel the env vars are already
+// injected into process.env, so this just no-ops.
+try { process.loadEnvFile('.env.local'); } catch { /* file missing — ignore */ }
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const PUBLIC_IMAGES = path.join(ROOT, 'public', 'images');

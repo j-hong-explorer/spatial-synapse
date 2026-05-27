@@ -10,6 +10,8 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+try { process.loadEnvFile('.env.local'); } catch { /* file missing — ignore */ }
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const CONCEPTS_JSON = path.join(ROOT, 'data', 'concepts.json');
