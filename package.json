@@ -9,7 +9,8 @@
     "lint": "eslint",
     "sync:obsidian": "node scripts/sync-content.mjs",
     "sync:notion": "node scripts/sync-notion.mjs",
-    "seed:notion": "node scripts/seed-notion.mjs"
+    "seed:notion": "node scripts/seed-notion.mjs",
+    "publish": "npm run sync:notion && git add -A && (git commit -m \"sync concepts\" || echo \"no changes to commit\") && git push"
   },
   "dependencies": {
     "@notionhq/client": "^5.22.0",
