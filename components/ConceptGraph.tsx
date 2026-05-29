@@ -748,9 +748,9 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
         <div
           className="px-5 md:px-10 pt-5 md:pt-6 pb-3 md:pb-4 transition-colors duration-300"
           style={{
-            backgroundColor: selectedNode ? "rgba(10,10,10,0.5)" : "transparent",
-            backdropFilter: selectedNode ? "blur(6px)" : "none",
-            WebkitBackdropFilter: selectedNode ? "blur(6px)" : "none",
+            backgroundColor: selectedNode ? "rgba(10,10,10,0.78)" : "transparent",
+            backdropFilter: selectedNode ? "blur(14px)" : "none",
+            WebkitBackdropFilter: selectedNode ? "blur(14px)" : "none",
           }}
         >
           <div className="flex flex-col items-center text-center md:items-start md:text-left md:flex-row md:justify-between gap-5 md:gap-0">
@@ -792,9 +792,9 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
           <div
             className="flex flex-col items-center text-center gap-3 md:gap-4 rounded-2xl px-5 md:px-7 py-4 md:py-5 max-w-[88vw] md:max-w-[640px]"
             style={{
-              backgroundColor: "rgba(10,10,10,0.5)",
-              backdropFilter: "blur(6px)",
-              WebkitBackdropFilter: "blur(6px)",
+              backgroundColor: "rgba(10,10,10,0.78)",
+              backdropFilter: "blur(14px)",
+              WebkitBackdropFilter: "blur(14px)",
             }}
           >
             <p className="text-2xl md:text-3xl font-thin text-accent leading-tight break-keep">
