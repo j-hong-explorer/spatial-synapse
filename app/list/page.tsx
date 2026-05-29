@@ -23,7 +23,8 @@ export default async function ListPage() {
           <div>
             <Link
               href="/"
-              className="font-thin text-accent/85 hover:text-accent transition-colors tracking-normal leading-none text-[36px] md:text-[39px] block"
+              className="font-thin text-accent/85 hover:text-accent transition-colors leading-none text-[36px] md:text-[39px] block"
+              style={{ letterSpacing: "0.02em" }}
             >
               Spatial Synapse
             </Link>

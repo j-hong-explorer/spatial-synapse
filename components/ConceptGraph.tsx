@@ -528,11 +528,11 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
           scaleMult = 0.93;
           isSelected = true;
         } else if (connectedIdsRef.current.has(id)) {
-          opacity = 0.55;       // softer than before so the main sphere dominates
-          scaleMult = 0.8;
+          opacity = 0.75;       // visible enough to read the label underneath
+          scaleMult = 0.75;
         } else {
-          opacity = 0.08;       // nearly invisible — main spotlight effect
-          scaleMult = 0.6;
+          opacity = 0.06;
+          scaleMult = 0.55;
         }
       }
       mat.opacity = opacity;
@@ -630,6 +630,25 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
     }
   }, [graphData.links, router, isTransitioning]);
 
+  // Reset selection + camera to the initial wide view (same as the very first
+  // entry). Used by the "Spatial Synapse" header button.
+  const handleHomeReset = useCallback(() => {
+    if (isTransitioning) return;
+    selectedIdRef.current = null;
+    connectedIdsRef.current = new Set();
+    setSelectedNode(null);
+
+    const fg = fgRef.current;
+    const init = initialCameraRef.current;
+    if (fg?.cameraPosition && init) {
+      fg.cameraPosition(
+        { x: init.pos.x, y: init.pos.y, z: init.pos.z },
+        { x: init.target.x, y: init.target.y, z: init.target.z },
+        900
+      );
+    }
+  }, [isTransitioning]);
+
   // Click on empty space clears selection AND zooms back further than the entry
   // view so the whole graph gets some breathing room.
   const handleBackgroundClick = useCallback(() => {
@@ -656,6 +675,50 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
       );
     }
   }, [isTransitioning]);
+
+  // Connected node objects for floating labels (rendered above the 3D scene
+  // and positioned each frame to follow their sphere on screen).
+  const connectedNodes = useMemo(() => {
+    if (!selectedNode) return [];
+    return graphData.nodes.filter((n) => connectedIdsRef.current.has(n.id));
+  }, [selectedNode, graphData.nodes]);
+
+  const labelElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // Per-frame: project each connected sphere's world position to screen pixels
+  // and transform its label DOM node accordingly. Stops when no selection.
+  useEffect(() => {
+    if (!selectedNode) return;
+    let raf = 0;
+    const fg = fgRef.current;
+    const tmp = new THREE.Vector3();
+    const tick = () => {
+      const cam = fg?.camera?.();
+      if (cam && size.w > 0 && size.h > 0) {
+        connectedNodes.forEach((n) => {
+          const sprite = spriteCache.current.get(n.id);
+          const el = labelElsRef.current.get(n.id);
+          if (!sprite || !el) return;
+          sprite.getWorldPosition(tmp);
+          // Forward distance — for behind-camera nodes
+          const dot = new THREE.Vector3().subVectors(tmp, cam.position).dot(
+            cam.getWorldDirection(new THREE.Vector3())
+          );
+          tmp.project(cam);
+          const onScreen = dot > 0 && Math.abs(tmp.x) <= 1.2 && Math.abs(tmp.y) <= 1.2;
+          const x = (tmp.x + 1) * size.w / 2;
+          const y = (1 - tmp.y) * size.h / 2;
+          // sphere radius in pixels (approx) — push label below the sphere
+          const radius = sprite.scale.x * size.h / (2 * Math.tan((cam.fov * Math.PI) / 360) * Math.max(dot, 1)) * 0.5;
+          el.style.transform = `translate3d(${x}px, ${y + radius + 8}px, 0) translate(-50%, 0)`;
+          el.style.opacity = onScreen ? "1" : "0";
+        });
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [selectedNode, connectedNodes, size]);
 
   // Connection list for selected node
   const connections = useMemo(() => {
@@ -684,12 +747,14 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
       <header className="absolute top-0 left-0 right-0 px-5 md:px-10 pt-5 md:pt-6 z-30 pointer-events-none">
         <div className="flex flex-col items-center text-center md:items-start md:text-left md:flex-row md:justify-between gap-5 md:gap-0">
           <div className="pointer-events-auto">
-            <Link
-              href="/"
-              className="font-thin text-accent/85 hover:text-accent transition-colors tracking-normal leading-none text-[36px] md:text-[39px] block"
+            <button
+              type="button"
+              onClick={handleHomeReset}
+              className="font-thin text-accent/85 hover:text-accent transition-colors leading-none text-[36px] md:text-[39px] block"
+              style={{ letterSpacing: "0.02em" }}
             >
               Spatial Synapse
-            </Link>
+            </button>
             <p className="mt-3 text-[10px] md:text-[11px] text-muted/60 leading-snug max-w-[290px] md:max-w-md break-keep mx-auto md:mx-0">
               AI로 정리하는 내 머릿속 공간 아이디어 아카이브
             </p>
@@ -735,58 +800,34 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
         </div>
       )}
 
-      {/* Connections — horizontal scroll, each one connected to the main node
-          with a short vertical gradient line drawn above the thumbnail. */}
+      {/* "Connections · N" label sits well below the main sphere so the two
+          never collide. Tappable thumbnails are gone — each connected sphere
+          in the 3D graph now carries its own floating title. */}
       {selectedNode && connections.length > 0 && (
         <div
-          className="absolute bottom-10 md:bottom-14 left-0 right-0 z-20 transition-opacity duration-300"
-          style={{ opacity: isTransitioning ? 0 : 1, pointerEvents: isTransitioning ? "none" : "auto" }}
+          className="absolute bottom-10 left-0 right-0 z-20 text-center transition-opacity duration-300 pointer-events-none"
+          style={{ opacity: isTransitioning ? 0 : 1 }}
         >
-          <p className="text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-muted/70 tabular mb-2 text-center">
+          <p className="text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-muted/70 tabular">
             Connections · {connections.length}
           </p>
-          <div
-            className="overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden"
-            style={{ scrollbarWidth: "none" }}
-          >
-            {/* w-max + mx-auto centers when contents fit; allows horizontal scroll when they don't */}
-            <div className="flex w-max mx-auto gap-4 md:gap-5 px-6 items-end">
-              {connections.map(({ other }, i) => {
-                // Lift the outer items so the row reads as a gentle ∪
-                // (cradling the main sphere from below).
-                const n = connections.length;
-                const center = (n - 1) / 2;
-                const dist = Math.abs(i - center);
-                // ~14px lift per step from center; clamp to keep it gentle
-                const liftPx = Math.min(dist * 14, 36);
-                return (
-                  <button
-                    key={other!.id}
-                    type="button"
-                    onClick={() => handleNodeClick(other)}
-                    className="group flex-shrink-0 flex flex-col items-center w-[72px] md:w-[86px]"
-                    style={{ transform: `translateY(-${liftPx}px)` }}
-                  >
-                    {/* short vertical line — reads as the link to the main sphere */}
-                    <div className="w-px h-7 md:h-9 bg-gradient-to-t from-white/22 to-transparent mx-auto" />
-                    <div className="mt-1 w-11 h-11 md:w-12 md:h-12 rounded-full overflow-hidden border border-white/10 group-hover:border-white/40 transition-colors">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={other!.image}
-                        alt={other!.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                    <span className="mt-2 text-[10px] md:text-[11px] text-accent/80 group-hover:text-accent transition-colors leading-tight text-center break-keep line-clamp-2">
-                      {other!.title}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </div>
       )}
+
+      {/* Floating title under every connected sphere — repositioned each frame */}
+      {selectedNode && connectedNodes.map((n) => (
+        <div
+          key={n.id}
+          ref={(el) => {
+            if (el) labelElsRef.current.set(n.id, el);
+            else labelElsRef.current.delete(n.id);
+          }}
+          className="absolute top-0 left-0 z-15 pointer-events-none text-[10px] md:text-[11px] text-accent/80 text-center break-keep leading-tight w-[110px] transition-opacity duration-300"
+          style={{ transform: "translate3d(-9999px,-9999px,0)", opacity: 0, willChange: "transform" }}
+        >
+          {n.title}
+        </div>
+      ))}
 
       {/* Graph canvas */}
       <div className="absolute inset-0 z-10">

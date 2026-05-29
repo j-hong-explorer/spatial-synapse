@@ -75,7 +75,9 @@ body {
   justify-content: center;
 }
 
-/* Dice throw animation: throw arc → tumble → settles dead-centre of viewport */
+/* Dice throw — simplified to a single smooth arc with consistent easing so
+   it never stutters mid-tumble. Just three stops: throw up → tumble down →
+   gentle settle at centre. */
 @keyframes diceThrow {
   0% {
     transform:
@@ -83,55 +85,19 @@ body {
       rotateX(var(--start-x, 0deg))
       rotateY(var(--start-y, 0deg))
       rotateZ(0deg);
-    animation-timing-function: cubic-bezier(0.34, 0.65, 0.5, 1);
+    animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
   }
-  14% {
+  22% {
     /* apex — up & slightly back */
     transform:
-      translate3d(20px, -200px, -110px)
-      rotateX(calc(var(--start-x, 0deg) + 220deg))
-      rotateY(calc(var(--start-y, 0deg) + 260deg))
-      rotateZ(120deg);
-    animation-timing-function: cubic-bezier(0.6, 0, 0.85, 0.4);
-  }
-  48% {
-    /* mid-fall — descending fast, tumbling */
-    transform:
-      translate3d(-15px, 30px, 60px)
-      rotateX(calc(var(--end-x, 0deg) + 560deg))
-      rotateY(calc(var(--end-y, 0deg) + 500deg))
-      rotateZ(420deg);
-    animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.5);
-  }
-  64% {
-    /* "impact" near centre */
-    transform:
-      translate3d(0, 55px, 0)
-      rotateX(calc(var(--end-x, 0deg) + 540deg))
-      rotateY(calc(var(--end-y, 0deg) + 480deg))
-      rotateZ(580deg);
-    animation-timing-function: cubic-bezier(0.34, 1.4, 0.64, 1);
-  }
-  74% {
-    /* bounce slightly above centre */
-    transform:
-      translate3d(12px, -18px, 0)
-      rotateX(calc(var(--end-x, 0deg) + 720deg))
-      rotateY(calc(var(--end-y, 0deg) + 600deg))
-      rotateZ(680deg);
-    animation-timing-function: cubic-bezier(0.6, 0, 0.85, 0.4);
-  }
-  86% {
-    /* small secondary bounce */
-    transform:
-      translate3d(-4px, 14px, 0)
-      rotateX(var(--end-x, 0deg))
-      rotateY(var(--end-y, 0deg))
-      rotateZ(720deg);
-    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+      translate3d(15px, -180px, -90px)
+      rotateX(calc(var(--start-x, 0deg) + 260deg))
+      rotateY(calc(var(--start-y, 0deg) + 300deg))
+      rotateZ(180deg);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.4, 1);
   }
   100% {
-    /* final resting place — exact viewport centre */
+    /* final resting place — exact viewport centre, one continuous descent */
     transform:
       translate3d(0, 0, 0)
       rotateX(var(--end-x, 0deg))
