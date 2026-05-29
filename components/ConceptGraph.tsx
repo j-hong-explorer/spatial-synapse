@@ -266,7 +266,18 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
         ctx.fillRect(0, 0, size, size);
 
         ctx.restore();
-        // No outer stroke — edge fades naturally into the background
+
+        // Force the perimeter pixels to alpha 1 so the sphere occludes any
+        // link that crosses through its on-screen area — even links that are
+        // technically in front of the sphere. The soft fade is still visible
+        // because (6) above paints the rim dark to match the page bg.
+        ctx.save();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(10,10,10,1)";
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
 
         const tex = new THREE.CanvasTexture(canvas);
         tex.colorSpace = THREE.SRGBColorSpace;
@@ -297,11 +308,11 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
         map: texture, // may be undefined initially; preload effect swaps it in
         transparent: true,
         opacity: 1,
-        // Treat circular pixels as opaque so they write to the depth buffer and
-        // occlude link capsules passing through the sphere volume. Threshold is
-        // 0.3 (not 0.5) so the soft edge fade is also opaque — otherwise links
-        // poke through the rim of the selected sphere.
-        alphaTest: 0.3,
+        // Very low alphaTest so nearly every pixel inside the disc is opaque
+        // and writes depth — combined with the rim-alpha boost in the texture,
+        // this means links are fully hidden anywhere the sphere covers them
+        // on screen, regardless of depth ordering.
+        alphaTest: 0.05,
         depthWrite: true,
         depthTest: true,
       });
@@ -540,11 +551,11 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
     ) {
       const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
       const camDistance = isMobile ? 65 : 85;
-      // Half the viewport width at this distance is roughly camDistance * tan(FOV/2),
-      // ≈ 30 world units for camDistance 65 / FOV 50°. Keep offset to about 1/3
-      // of that so the node lands ~17% right of center — clearly past the panel,
-      // never off-screen.
-      const lookOffset  = isMobile ? 11 : 8;
+      // Shift the look-at point so the node lands UPPER-RIGHT of center,
+      // leaving room for the info panel on the left and the horizontal
+      // connection scroll along the bottom.
+      const lookOffsetX = isMobile ? 10 : 8;   // node moves right
+      const lookOffsetY = isMobile ? 14 : 9;   // node moves up
 
       cam.updateMatrixWorld();
       const camRight = new THREE.Vector3();
@@ -552,6 +563,7 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
       const camBack = new THREE.Vector3();
       cam.matrixWorld.extractBasis(camRight, camUp, camBack);
       camRight.normalize();
+      camUp.normalize();
 
       // Preserve the user's current viewing direction; just slide the camera
       // along it until it's `camDistance` outside the node.
@@ -561,8 +573,10 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
       const nodeVec = new THREE.Vector3(node.x, node.y, node.z);
       const newCamPos = nodeVec.clone().add(currentDir.clone().multiplyScalar(camDistance));
 
-      // Pull the look-at point LEFT in screen space → node ends up on the right.
-      const newTarget = nodeVec.clone().sub(camRight.multiplyScalar(lookOffset));
+      // Pull look-at LEFT and DOWN in screen space → node ends up upper-right.
+      const newTarget = nodeVec.clone()
+        .sub(camRight.multiplyScalar(lookOffsetX))
+        .sub(camUp.multiplyScalar(lookOffsetY));
 
       fg.cameraPosition(
         { x: newCamPos.x, y: newCamPos.y, z: newCamPos.z },
@@ -626,10 +640,10 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
       <header className="absolute top-0 left-0 right-0 px-5 md:px-10 pt-5 md:pt-6 z-30 pointer-events-none">
         <div className="flex flex-col items-center text-center md:items-start md:text-left md:flex-row md:justify-between gap-5 md:gap-0">
           <div className="pointer-events-auto">
-            <div className="font-light text-accent tracking-tight leading-none text-[24px] md:text-[26px]">
+            <div className="font-light text-accent/90 tracking-tight leading-none text-[36px] md:text-[39px]">
               Spatial Synapse
             </div>
-            <p className="mt-2 text-[10px] md:text-[11px] text-muted/60 leading-snug max-w-[290px] md:max-w-md break-keep mx-auto md:mx-0">
+            <p className="mt-3 text-[10px] md:text-[11px] text-muted/60 leading-snug max-w-[290px] md:max-w-md break-keep mx-auto md:mx-0">
               AI로 정리하는 내 머릿속 공간 아이디어 아카이브
             </p>
           </div>
@@ -645,53 +659,67 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
       {/* Centred footer: hint + email/instagram + visit counter */}
       <SiteFooter hint="Drag · Pinch · Tap" />
 
-      {/* Selection info — left side card */}
+      {/* Selection info — left/top-ish card with an explicit Open button */}
       {selectedNode && (
         <div
-          className="absolute top-1/2 -translate-y-1/2 left-6 md:left-10 z-20 max-w-[300px] md:max-w-[340px] transition-opacity duration-300"
+          className="absolute top-[30%] md:top-[38%] -translate-y-1/2 left-6 md:left-10 z-20 max-w-[280px] md:max-w-[340px] transition-opacity duration-300"
           style={{ opacity: isTransitioning ? 0 : 1, pointerEvents: isTransitioning ? "none" : "auto" }}
         >
-          <p className="text-2xl md:text-3xl font-light text-accent leading-tight mb-3">
+          <p className="text-2xl md:text-3xl font-light text-accent leading-tight mb-3 break-keep">
             {selectedNode.title}
           </p>
-          <div className="text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-muted tabular mb-3">
+          <div className="text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-muted tabular mb-4">
             {selectedNode.tags.join("  ·  ")}
           </div>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-accent/50 tabular mb-3 animate-pulse">
-            Tap again to open ↗
-          </p>
+          <button
+            type="button"
+            // Selecting again with the same id triggers the navigate branch in handleNodeClick.
+            onClick={() => handleNodeClick(selectedNode)}
+            className="inline-flex items-center gap-2 border border-accent/30 hover:bg-accent hover:text-bg hover:border-accent rounded-full py-2.5 px-5 text-[10px] md:text-[11px] uppercase tracking-[0.25em] text-accent/90 tabular transition-colors"
+          >
+            Open this concept
+            <span aria-hidden>→</span>
+          </button>
+        </div>
+      )}
 
-          {connections.length > 0 && (
-            <>
-              <div className="h-px bg-muted/20 my-3" />
-              <p className="text-[10px] uppercase tracking-[0.25em] text-muted/70 mb-2 tabular">
-                Connections · {connections.length}
-              </p>
-              <ul className="space-y-1 text-[11px] md:text-xs text-accent/85 leading-snug max-h-[40vh] overflow-y-auto -mx-1">
-                {connections.slice(0, 8).map(({ other, shared }) => (
-                  <li key={other!.id}>
-                    <button
-                      type="button"
-                      onClick={() => handleNodeClick(other)}
-                      className="w-full text-left flex flex-col px-1 py-1.5 rounded hover:bg-white/5 transition-colors group"
-                    >
-                      <span className="text-accent group-hover:text-white transition-colors">
-                        {other!.title}
-                      </span>
-                      <span className="text-muted/80 text-[10px] tabular">
-                        공유 · {shared.join(", ")}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-                {connections.length > 8 && (
-                  <li className="text-muted/60 text-[10px] tabular pt-1 px-1">
-                    + {connections.length - 8} more
-                  </li>
-                )}
-              </ul>
-            </>
-          )}
+      {/* Connections — horizontal scroll above the footer */}
+      {selectedNode && connections.length > 0 && (
+        <div
+          className="absolute bottom-28 md:bottom-32 left-0 right-0 z-20 transition-opacity duration-300"
+          style={{ opacity: isTransitioning ? 0 : 1, pointerEvents: isTransitioning ? "none" : "auto" }}
+        >
+          <p className="text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-muted/70 tabular mb-3 text-center">
+            Connections · {connections.length}
+          </p>
+          <div
+            className="overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden"
+            style={{ scrollbarWidth: "none" }}
+          >
+            {/* w-max + mx-auto centers when contents fit; allows horizontal scroll when they don't */}
+            <div className="flex w-max mx-auto gap-5 md:gap-6 px-6">
+              {connections.map(({ other }) => (
+                <button
+                  key={other!.id}
+                  type="button"
+                  onClick={() => handleNodeClick(other)}
+                  className="group flex-shrink-0 flex flex-col items-center gap-2 w-[78px] md:w-[90px]"
+                >
+                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden border border-white/10 group-hover:border-white/40 transition-colors">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={other!.image}
+                      alt={other!.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <span className="text-[10px] md:text-[11px] text-accent/80 group-hover:text-accent transition-colors leading-tight text-center break-keep line-clamp-2">
+                    {other!.title}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

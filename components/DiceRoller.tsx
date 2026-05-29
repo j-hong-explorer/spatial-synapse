@@ -180,10 +180,10 @@ export function DiceRoller({ concepts }: { concepts: Concept[] }) {
       <header className="px-5 md:px-10 pt-5 md:pt-6 z-30">
         <div className="flex flex-col items-center text-center md:items-start md:text-left md:flex-row md:justify-between gap-5 md:gap-0">
           <div>
-            <div className="font-light text-accent tracking-tight leading-none text-[24px] md:text-[26px]">
+            <div className="font-light text-accent/90 tracking-tight leading-none text-[36px] md:text-[39px]">
               Spatial Synapse
             </div>
-            <p className="mt-2 text-[10px] md:text-[11px] text-muted/60 leading-snug max-w-[290px] md:max-w-md break-keep mx-auto md:mx-0">
+            <p className="mt-3 text-[10px] md:text-[11px] text-muted/60 leading-snug max-w-[290px] md:max-w-md break-keep mx-auto md:mx-0">
               AI로 정리하는 내 머릿속 공간 아이디어 아카이브
             </p>
           </div>
