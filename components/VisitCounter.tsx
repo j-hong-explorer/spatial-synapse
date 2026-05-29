@@ -35,12 +35,12 @@ export function VisitCounter() {
       .catch(() => {});
   }, []);
 
-  // Render nothing until we have a real number (and not zero, which means
-  // backend isn't connected yet).
-  if (count === null || count === 0) return null;
+  // Render nothing until we have a real number. Zero is shown
+  // (it means Upstash is connected but you're the first visitor).
+  if (count === null) return null;
 
   return (
-    <span className="text-[10px] text-muted/45 tabular">
+    <span className="text-[9px] md:text-[10px] text-muted/45 tabular">
       {count.toLocaleString()} visitors
     </span>
   );

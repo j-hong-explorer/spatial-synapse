@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { VisitCounter } from "./VisitCounter";
 
 const EMAIL = "jeahong0754@gmail.com";
 const INSTAGRAM = "https://www.instagram.com/j._.hong_/";
 
 // Bottom-of-the-screen footer for the Brain page.
-// Holds: navigation hint, email (copy-to-clipboard), Instagram link, visit count.
+// Holds: navigation hint, email (copy-to-clipboard), Instagram link.
+// Visit counter is rendered separately (always-visible bottom strip).
 export function SiteFooter({ hint }: { hint: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -60,8 +60,6 @@ export function SiteFooter({ hint }: { hint: string }) {
           </svg>
         </a>
       </div>
-
-      <VisitCounter />
     </footer>
   );
 }

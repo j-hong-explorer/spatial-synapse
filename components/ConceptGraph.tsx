@@ -8,6 +8,7 @@ import * as THREE from "three";
 import type { Concept } from "@/lib/concepts";
 import { ModeTabs } from "./ModeTabs";
 import { SiteFooter } from "./SiteFooter";
+import { VisitCounter } from "./VisitCounter";
 
 // ForceGraph3D uses WebGL + Three.js → must be client-only (no SSR)
 const ForceGraph3D = dynamic(() => import("react-force-graph-3d"), {
@@ -285,46 +286,87 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
         tex.anisotropy = 4;
         circularTextureCache.current.set(url, tex);
 
-        // Swap into the corresponding sprite if it already exists
+        // Swap into the corresponding sprite + occluder if they already exist
         const sprite = spriteCache.current.get(c.slug);
         if (sprite) {
           const mat = sprite.material as THREE.SpriteMaterial;
           mat.map = tex;
           mat.needsUpdate = true;
+          // The invisible occluder sprite (parent's userData.occluder) shares
+          // shape but writes stencil so links can be masked out completely.
+          const parent = sprite.parent as THREE.Group | null;
+          const occ = parent?.userData?.occluder as THREE.Sprite | undefined;
+          if (occ) {
+            const occMat = occ.material as THREE.SpriteMaterial;
+            occMat.map = tex;
+            occMat.needsUpdate = true;
+          }
         }
       };
       img.src = url;
     });
   }, [concepts]);
 
-  // Build a sprite ONCE per node, cache it. Opacity is updated via effect (no rebuild).
+  // Build a Group containing two sprites per node:
+  //   (1) occluder — invisible, writes stencil to mark on-screen sphere area
+  //   (2) visible  — the textured circular sphere
+  // Links use stencil != 1 to skip any pixel that falls inside ANY sphere on
+  // screen, which is the only way to guarantee "links never show through a
+  // sphere regardless of depth order".
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const nodeThreeObject = useCallback((rawNode: any) => {
     const node = rawNode as GNode;
-    let sprite = spriteCache.current.get(node.id);
-    if (!sprite) {
-      const texture = circularTextureCache.current.get(node.image);
-      const material = new THREE.SpriteMaterial({
-        map: texture, // may be undefined initially; preload effect swaps it in
-        transparent: true,
-        opacity: 1,
-        // Very low alphaTest so nearly every pixel inside the disc is opaque
-        // and writes depth — combined with the rim-alpha boost in the texture,
-        // this means links are fully hidden anywhere the sphere covers them
-        // on screen, regardless of depth ordering.
-        alphaTest: 0.05,
-        depthWrite: true,
-        depthTest: true,
-      });
-      sprite = new THREE.Sprite(material);
-      const baseSize = 18;
-      const sizeVal = baseSize + (node.tags?.length ?? 0) * 0.8;
-      sprite.scale.set(sizeVal, sizeVal, 1);
-      sprite.userData.baseScale = sizeVal; // remember natural size for selection scaling
-      sprite.renderOrder = 2; // Draw spheres above link capsules
-      spriteCache.current.set(node.id, sprite);
+    const cached = spriteCache.current.get(node.id);
+    if (cached) {
+      // We cache the visible sprite; return its parent group.
+      return cached.parent ?? cached;
     }
-    return sprite;
+
+    const texture = circularTextureCache.current.get(node.image);
+    const baseSize = 18;
+    const sizeVal = baseSize + (node.tags?.length ?? 0) * 0.8;
+
+    // Visible sprite (the picture you actually see)
+    const visibleMat = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      opacity: 1,
+      alphaTest: 0.05,
+      depthWrite: true,
+      depthTest: true,
+    });
+    const sprite = new THREE.Sprite(visibleMat);
+    sprite.scale.set(sizeVal, sizeVal, 1);
+    sprite.renderOrder = 2;
+
+    // Invisible occluder sprite — same shape, but only writes stencil + depth.
+    // Drawn before transparent links (opaque pass).
+    const occluderMat = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: false,
+      alphaTest: 0.05,
+      depthWrite: true,
+      depthTest: true,
+      colorWrite: false, // invisible
+      stencilWrite: true,
+      stencilRef: 1,
+      stencilFunc: THREE.AlwaysStencilFunc,
+      stencilZPass: THREE.ReplaceStencilOp,
+      stencilZFail: THREE.KeepStencilOp,
+      stencilFail: THREE.KeepStencilOp,
+    });
+    const occluder = new THREE.Sprite(occluderMat);
+    occluder.scale.copy(sprite.scale);
+    occluder.renderOrder = -1; // draw first so stencil is set before links
+
+    const group = new THREE.Group();
+    group.add(occluder);
+    group.add(sprite);
+    group.userData = { sprite, occluder, baseScale: sizeVal };
+    sprite.userData.baseScale = sizeVal;
+
+    spriteCache.current.set(node.id, sprite);
+    return group;
   }, []);
 
   // Custom edge: open-ended cylinder + two endpoint spheres sharing one material.
@@ -345,6 +387,12 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
         opacity: 0.10,
         depthWrite: false,
         depthTest: true,
+        // Stencil != 1 → skip every pixel that falls inside any sphere on
+        // screen, regardless of depth. This is what guarantees links never
+        // poke through a sphere even when they're closer to the camera.
+        stencilWrite: false,
+        stencilFunc: THREE.NotEqualStencilFunc,
+        stencilRef: 1,
       });
       const cyl = new THREE.Mesh(
         new THREE.CylinderGeometry(radius, radius, 1, 16, 1, true), // openEnded
@@ -466,34 +514,43 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
 
   // Update sprite opacity + scale + draw-order when selection changes.
   // Selected sphere also disables depthTest so it can never be occluded by
-  // another sphere that happens to be closer to the camera.
+  // another sphere that happens to be closer to the camera. The occluder sprite
+  // (sibling under the same group) is resized in lockstep so the stencil mask
+  // matches the visible sphere.
   useEffect(() => {
     spriteCache.current.forEach((sprite, id) => {
       const mat = sprite.material as THREE.SpriteMaterial;
       const base: number = (sprite.userData.baseScale as number) ?? sprite.scale.x;
 
       let opacity = 1;
+      // Selected node is ~0.93x its natural size (2/3 of the previous 1.4x),
+      // landing in the middle of the screen for clean composition.
       let scaleMult = 1;
       let isSelected = false;
       if (selectedNode) {
         if (id === selectedNode.id) {
           opacity = 1;
-          scaleMult = 1.4;
+          scaleMult = 0.93;
           isSelected = true;
         } else if (connectedIdsRef.current.has(id)) {
           opacity = 0.9;
-          scaleMult = 0.95;
+          scaleMult = 0.85;
         } else {
           opacity = 0.25;
-          scaleMult = 0.8;
+          scaleMult = 0.7;
         }
       }
       mat.opacity = opacity;
-      // Selected sphere wins over everything else, always on top.
       mat.depthTest = !isSelected;
       mat.needsUpdate = true;
       sprite.renderOrder = isSelected ? 100 : 2;
-      sprite.scale.set(base * scaleMult, base * scaleMult, 1);
+      const newSize = base * scaleMult;
+      sprite.scale.set(newSize, newSize, 1);
+
+      // Keep the invisible occluder in sync so the stencil mask matches.
+      const parent = sprite.parent as THREE.Group | null;
+      const occluder = parent?.userData?.occluder as THREE.Sprite | undefined;
+      if (occluder) occluder.scale.set(newSize, newSize, 1);
     });
   }, [selectedNode]);
 
@@ -550,33 +607,19 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
       node.x !== undefined && node.y !== undefined && node.z !== undefined
     ) {
       const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-      const camDistance = isMobile ? 65 : 85;
-      // Shift the look-at point so the node lands UPPER-RIGHT of center,
-      // leaving room for the info panel on the left and the horizontal
-      // connection scroll along the bottom.
-      const lookOffsetX = isMobile ? 10 : 8;   // node moves right
-      const lookOffsetY = isMobile ? 14 : 9;   // node moves up
+      // A bit farther out than before so the smaller selected sphere still
+      // reads cleanly and leaves space for the info panel + connection row.
+      const camDistance = isMobile ? 80 : 95;
 
       cam.updateMatrixWorld();
-      const camRight = new THREE.Vector3();
-      const camUp = new THREE.Vector3();
-      const camBack = new THREE.Vector3();
-      cam.matrixWorld.extractBasis(camRight, camUp, camBack);
-      camRight.normalize();
-      camUp.normalize();
-
-      // Preserve the user's current viewing direction; just slide the camera
-      // along it until it's `camDistance` outside the node.
       const currentDir = new THREE.Vector3()
         .subVectors(cam.position, controls.target)
         .normalize();
       const nodeVec = new THREE.Vector3(node.x, node.y, node.z);
       const newCamPos = nodeVec.clone().add(currentDir.clone().multiplyScalar(camDistance));
 
-      // Pull look-at LEFT and DOWN in screen space → node ends up upper-right.
-      const newTarget = nodeVec.clone()
-        .sub(camRight.multiplyScalar(lookOffsetX))
-        .sub(camUp.multiplyScalar(lookOffsetY));
+      // Look straight at the node — it sits in the visual center of the screen.
+      const newTarget = nodeVec.clone();
 
       fg.cameraPosition(
         { x: newCamPos.x, y: newCamPos.y, z: newCamPos.z },
@@ -656,13 +699,18 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
         {graphData.nodes.length} concepts · {graphData.links.length} edges
       </div>
 
-      {/* Centred footer: hint + email/instagram + visit counter */}
-      <SiteFooter hint="Drag · Pinch · Tap" />
+      {/* Centred footer: hint + email/instagram — ONLY on the initial view */}
+      {!selectedNode && <SiteFooter hint="Drag · Pinch · Tap" />}
+
+      {/* Visit counter sits at the very bottom of the screen, always visible */}
+      <div className="absolute bottom-1.5 left-0 right-0 z-10 flex justify-center pointer-events-none">
+        <VisitCounter />
+      </div>
 
       {/* Selection info — left/top-ish card with an explicit Open button */}
       {selectedNode && (
         <div
-          className="absolute top-[30%] md:top-[38%] -translate-y-1/2 left-6 md:left-10 z-20 max-w-[280px] md:max-w-[340px] transition-opacity duration-300"
+          className="absolute top-[38%] md:top-[44%] -translate-y-1/2 left-6 md:left-10 z-20 max-w-[260px] md:max-w-[340px] transition-opacity duration-300"
           style={{ opacity: isTransitioning ? 0 : 1, pointerEvents: isTransitioning ? "none" : "auto" }}
         >
           <p className="text-2xl md:text-3xl font-light text-accent leading-tight mb-3 break-keep">
@@ -683,13 +731,14 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
         </div>
       )}
 
-      {/* Connections — horizontal scroll above the footer */}
+      {/* Connections — horizontal scroll, each one connected to the main node
+          with a short vertical gradient line drawn above the thumbnail. */}
       {selectedNode && connections.length > 0 && (
         <div
-          className="absolute bottom-28 md:bottom-32 left-0 right-0 z-20 transition-opacity duration-300"
+          className="absolute bottom-10 md:bottom-14 left-0 right-0 z-20 transition-opacity duration-300"
           style={{ opacity: isTransitioning ? 0 : 1, pointerEvents: isTransitioning ? "none" : "auto" }}
         >
-          <p className="text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-muted/70 tabular mb-3 text-center">
+          <p className="text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-muted/70 tabular mb-2 text-center">
             Connections · {connections.length}
           </p>
           <div
@@ -697,15 +746,17 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
             style={{ scrollbarWidth: "none" }}
           >
             {/* w-max + mx-auto centers when contents fit; allows horizontal scroll when they don't */}
-            <div className="flex w-max mx-auto gap-5 md:gap-6 px-6">
+            <div className="flex w-max mx-auto gap-5 md:gap-6 px-6 items-end">
               {connections.map(({ other }) => (
                 <button
                   key={other!.id}
                   type="button"
                   onClick={() => handleNodeClick(other)}
-                  className="group flex-shrink-0 flex flex-col items-center gap-2 w-[78px] md:w-[90px]"
+                  className="group flex-shrink-0 flex flex-col items-center w-[78px] md:w-[90px]"
                 >
-                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden border border-white/10 group-hover:border-white/40 transition-colors">
+                  {/* short vertical line — reads as the link to the main sphere */}
+                  <div className="w-px h-10 md:h-12 bg-gradient-to-t from-white/35 to-transparent mx-auto" />
+                  <div className="mt-1 w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden border border-white/10 group-hover:border-white/40 transition-colors">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={other!.image}
@@ -713,7 +764,7 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
-                  <span className="text-[10px] md:text-[11px] text-accent/80 group-hover:text-accent transition-colors leading-tight text-center break-keep line-clamp-2">
+                  <span className="mt-2 text-[10px] md:text-[11px] text-accent/80 group-hover:text-accent transition-colors leading-tight text-center break-keep line-clamp-2">
                     {other!.title}
                   </span>
                 </button>
