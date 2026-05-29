@@ -8,7 +8,6 @@ import * as THREE from "three";
 import type { Concept } from "@/lib/concepts";
 import { ModeTabs } from "./ModeTabs";
 import { SiteFooter } from "./SiteFooter";
-import { VisitCounter } from "./VisitCounter";
 
 // ForceGraph3D uses WebGL + Three.js → must be client-only (no SSR)
 const ForceGraph3D = dynamic(() => import("react-force-graph-3d"), {
@@ -768,13 +767,9 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
         {graphData.nodes.length} concepts · {graphData.links.length} edges
       </div>
 
-      {/* Centred footer: hint + email/instagram — ONLY on the initial view */}
-      {!selectedNode && <SiteFooter hint="Drag · Pinch · Tap" />}
-
-      {/* Visit counter sits at the very bottom of the screen, always visible */}
-      <div className="absolute bottom-1.5 left-0 right-0 z-10 flex justify-center pointer-events-none">
-        <VisitCounter />
-      </div>
+      {/* Footer — always mounted so the visit counter stays visible. The
+          hint + email/instagram row inside fades out when a node is selected. */}
+      <SiteFooter hint="Drag · Pinch · Tap" dimmed={!!selectedNode} />
 
       {/* Selection info — 3 lines centered above the (now lowered) main sphere */}
       {selectedNode && (

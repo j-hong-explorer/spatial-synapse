@@ -75,9 +75,10 @@ body {
   justify-content: center;
 }
 
-/* Dice throw — simplified to a single smooth arc with consistent easing so
-   it never stutters mid-tumble. Just three stops: throw up → tumble down →
-   gentle settle at centre. */
+/* Dice throw — single smooth descent + a 토도독 (3 tiny bounces) settle.
+   Apex → fall → impact slightly below centre → bounce up → smaller bounce →
+   final rest at centre. All sub-bounces use the SAME ease-out curve so it
+   reads as one continuous motion, no mid-air freezes. */
 @keyframes diceThrow {
   0% {
     transform:
@@ -87,17 +88,44 @@ body {
       rotateZ(0deg);
     animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
   }
-  22% {
+  20% {
     /* apex — up & slightly back */
     transform:
-      translate3d(15px, -180px, -90px)
+      translate3d(15px, -190px, -90px)
       rotateX(calc(var(--start-x, 0deg) + 260deg))
       rotateY(calc(var(--start-y, 0deg) + 300deg))
       rotateZ(180deg);
-    animation-timing-function: cubic-bezier(0.45, 0, 0.4, 1);
+    animation-timing-function: cubic-bezier(0.55, 0, 0.4, 1);
+  }
+  68% {
+    /* first impact — slightly below centre (the "floor") */
+    transform:
+      translate3d(0, 22px, 0)
+      rotateX(var(--end-x, 0deg))
+      rotateY(var(--end-y, 0deg))
+      rotateZ(720deg);
+    animation-timing-function: cubic-bezier(0.34, 1.3, 0.64, 1);
+  }
+  80% {
+    /* first bounce up */
+    transform:
+      translate3d(2px, -10px, 0)
+      rotateX(var(--end-x, 0deg))
+      rotateY(var(--end-y, 0deg))
+      rotateZ(720deg);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.4, 1);
+  }
+  90% {
+    /* tiny second bounce */
+    transform:
+      translate3d(-1px, 5px, 0)
+      rotateX(var(--end-x, 0deg))
+      rotateY(var(--end-y, 0deg))
+      rotateZ(720deg);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.4, 1);
   }
   100% {
-    /* final resting place — exact viewport centre, one continuous descent */
+    /* settled dead-centre */
     transform:
       translate3d(0, 0, 0)
       rotateX(var(--end-x, 0deg))
@@ -106,15 +134,17 @@ body {
   }
 }
 
-/* View transition: morph concept cover from dice face → detail hero. Longer + smoother. */
+/* View transition: morph concept cover from dice face → detail hero.
+   Shorter so it lands close to the dice's last frame without a long
+   "shrink" feeling. */
 ::view-transition-group(*) {
-  animation-duration: 900ms;
-  animation-timing-function: cubic-bezier(0.5, 0, 0.25, 1);
+  animation-duration: 500ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 ::view-transition-old(*),
 ::view-transition-new(*) {
-  animation-duration: 900ms;
-  animation-timing-function: cubic-bezier(0.5, 0, 0.25, 1);
+  animation-duration: 500ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -129,18 +129,17 @@ export function DiceRoller({ concepts }: { concepts: Concept[] }) {
 
   const onThrowAnimationEnd = () => {
     if (phaseRef.current !== "throwing") return;
-    // The cube just landed at viewport centre. Quick recognition beat, then
-    // zoom straight into the result and navigate near the end of the zoom so
-    // the ViewTransition picks it up at full-screen size.
+    // Cube just landed (with 토도독 bounces). Very short recognition beat,
+    // then a brief zoom that hands off to the ViewTransition near full size.
     setPhase("settled");
     const slug = faces[resultFace].slug;
     const t1 = window.setTimeout(() => {
       setPhase("zooming");
       const t2 = window.setTimeout(() => {
         router.push(`/c/${slug}?from=dice`);
-      }, 480);
+      }, 280);
       settleTimers.current.push(t2);
-    }, 140);
+    }, 100);
     settleTimers.current.push(t1);
   };
 
@@ -170,10 +169,11 @@ export function DiceRoller({ concepts }: { concepts: Concept[] }) {
     cubeStyle.transition = "transform 0s";
     cubeStyle.opacity = 1;
   } else if (phase === "zooming") {
-    // Scale straight up from centre — the cube grows to fill the viewport
-    // so the ViewTransition lands on an already-full-screen image.
-    cubeStyle.transform = `translate3d(0, 0, 540px) scale(5) rotateX(${endRotation.x}deg) rotateY(${endRotation.y}deg) rotateZ(720deg)`;
-    cubeStyle.transition = "transform 520ms cubic-bezier(0.4, 0.0, 0.2, 1)";
+    // Brief, modest zoom — just enough to "open" toward the detail page.
+    // Smaller scale + shorter duration so the ViewTransition picks it up
+    // closer to its natural size (no "expand then shrink" feel).
+    cubeStyle.transform = `translate3d(0, 0, 200px) scale(2.4) rotateX(${endRotation.x}deg) rotateY(${endRotation.y}deg) rotateZ(720deg)`;
+    cubeStyle.transition = "transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1)";
     cubeStyle.opacity = 1;
   }
 
