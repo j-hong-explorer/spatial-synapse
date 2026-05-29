@@ -24,12 +24,12 @@ export function SiteFooter({ hint, dimmed = false }: { hint: string; dimmed?: bo
   };
 
   return (
-    <footer className="absolute bottom-0 left-0 right-0 z-20 px-5 pb-3 md:pb-5 flex flex-col items-center gap-2 pointer-events-none">
-      {/* Hint + email + IG — only on the initial Brain view */}
-      <div
-        className="flex flex-col items-center gap-2 transition-opacity duration-300"
-        style={{ opacity: dimmed ? 0 : 1, pointerEvents: dimmed ? "none" : "auto" }}
-      >
+    <footer
+      className="absolute bottom-0 left-0 right-0 z-20 px-5 pb-3 md:pb-5 flex flex-col items-center gap-2 transition-opacity duration-300"
+      style={{ opacity: dimmed ? 0 : 1, pointerEvents: dimmed ? "none" : "auto" }}
+    >
+      {/* Everything — hint, email, IG, visit counter — only on the initial Brain view */}
+      <div className="flex flex-col items-center gap-2">
         <div className="text-[9px] md:text-xs uppercase tracking-[0.25em] md:tracking-[0.3em] text-muted/70 tabular">
           {hint}
         </div>
@@ -67,10 +67,10 @@ export function SiteFooter({ hint, dimmed = false }: { hint: string; dimmed?: bo
             </svg>
           </a>
         </div>
-      </div>
 
-      {/* Visit counter — ALWAYS visible, even when a node is selected */}
-      <VisitCounter />
+        {/* Visit counter — hidden along with the rest when a node is selected */}
+        <VisitCounter />
+      </div>
     </footer>
   );
 }

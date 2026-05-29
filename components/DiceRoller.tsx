@@ -129,17 +129,15 @@ export function DiceRoller({ concepts }: { concepts: Concept[] }) {
 
   const onThrowAnimationEnd = () => {
     if (phaseRef.current !== "throwing") return;
-    // Cube just landed (with 토도독 bounces). Very short recognition beat,
-    // then a brief zoom that hands off to the ViewTransition near full size.
+    // Cube just landed at centre. Very brief recognition pause, then hand
+    // STRAIGHT to the ViewTransition — no separate zoom phase, no expand-
+    // then-shrink. The ViewTransition morphs the dice face directly into
+    // the detail page's hero image.
     setPhase("settled");
     const slug = faces[resultFace].slug;
     const t1 = window.setTimeout(() => {
-      setPhase("zooming");
-      const t2 = window.setTimeout(() => {
-        router.push(`/c/${slug}?from=dice`);
-      }, 280);
-      settleTimers.current.push(t2);
-    }, 100);
+      router.push(`/c/${slug}?from=dice`);
+    }, 220);
     settleTimers.current.push(t1);
   };
 
@@ -158,22 +156,17 @@ export function DiceRoller({ concepts }: { concepts: Concept[] }) {
   if (phase === "idle") {
     cubeStyle.transform = `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`;
   } else if (phase === "throwing") {
-    cubeStyle.animation = "diceThrow 1.7s forwards";
+    cubeStyle.animation = "diceThrow 1.3s forwards";
     cubeStyle["--start-x"] = `${rotation.x}deg`;
     cubeStyle["--start-y"] = `${rotation.y}deg`;
     cubeStyle["--end-x"] = `${endRotation.x}deg`;
     cubeStyle["--end-y"] = `${endRotation.y}deg`;
-  } else if (phase === "settled") {
-    // Cube is at exact viewport centre (matches animation end). Hold here.
+  } else if (phase === "settled" || phase === "zooming") {
+    // Hold the cube exactly where the throw animation ended — dead centre.
+    // No further scaling here; the ViewTransition takes over for the morph
+    // into the detail page so there's no "expand then shrink" double motion.
     cubeStyle.transform = `translate3d(0, 0, 0) scale(1) rotateX(${endRotation.x}deg) rotateY(${endRotation.y}deg) rotateZ(720deg)`;
     cubeStyle.transition = "transform 0s";
-    cubeStyle.opacity = 1;
-  } else if (phase === "zooming") {
-    // Brief, modest zoom — just enough to "open" toward the detail page.
-    // Smaller scale + shorter duration so the ViewTransition picks it up
-    // closer to its natural size (no "expand then shrink" feel).
-    cubeStyle.transform = `translate3d(0, 0, 200px) scale(2.4) rotateX(${endRotation.x}deg) rotateY(${endRotation.y}deg) rotateZ(720deg)`;
-    cubeStyle.transition = "transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1)";
     cubeStyle.opacity = 1;
   }
 
