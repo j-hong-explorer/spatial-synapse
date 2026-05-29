@@ -15,10 +15,11 @@ export function ModeTabs() {
     <nav
       className={
         // Mobile: full-width row, 3 equal segments.
-        // Desktop: centered, larger text (2× previous) — main navigation tone.
+        // Desktop: centered, ~70% of the previous large size — comfortable
+        // primary nav without dominating the layout.
         "flex w-full md:w-auto items-center " +
-        "justify-between md:justify-center gap-0 md:gap-12 " +
-        "uppercase tracking-[0.22em] md:tracking-[0.32em] tabular pointer-events-auto"
+        "justify-between md:justify-center gap-0 md:gap-9 " +
+        "uppercase tracking-[0.22em] md:tracking-[0.3em] tabular pointer-events-auto"
       }
     >
       {MODES.map((m) => {
@@ -30,7 +31,7 @@ export function ModeTabs() {
             aria-current={active ? "page" : undefined}
             className={
               "flex-1 md:flex-none text-center " +
-              "text-[13px] md:text-[26px] " +
+              "text-[13px] md:text-[18px] " +
               "py-1 md:py-0 " +
               "transition-colors " +
               (active

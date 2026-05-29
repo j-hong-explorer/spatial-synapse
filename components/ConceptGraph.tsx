@@ -267,17 +267,21 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
 
         ctx.restore();
 
-        // Force the perimeter pixels to alpha 1 so the sphere occludes any
-        // link that crosses through its on-screen area — even links that are
-        // technically in front of the sphere. The soft fade is still visible
-        // because (6) above paints the rim dark to match the page bg.
-        ctx.save();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = "rgba(10,10,10,1)";
-        ctx.beginPath();
-        ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
+        // Soft alpha fade on the very outer ring so the sphere's edge melts
+        // into the background instead of cutting off as a hard circle. Link
+        // occlusion is handled by the invisible mesh occluder + stencil, so
+        // we no longer need a hard alpha-1 perimeter stroke here.
+        const alphaFade = ctx.createRadialGradient(
+          size / 2, size / 2, size * 0.46,
+          size / 2, size / 2, size / 2 - 1
+        );
+        alphaFade.addColorStop(0, "rgba(0,0,0,0)");
+        alphaFade.addColorStop(0.6, "rgba(0,0,0,0.4)");
+        alphaFade.addColorStop(1, "rgba(0,0,0,1)");
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.fillStyle = alphaFade;
+        ctx.fillRect(0, 0, size, size);
+        ctx.globalCompositeOperation = "source-over";
 
         const tex = new THREE.CanvasTexture(canvas);
         tex.colorSpace = THREE.SRGBColorSpace;
