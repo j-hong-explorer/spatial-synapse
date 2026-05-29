@@ -603,23 +603,16 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
       const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
       const camDistance = isMobile ? 80 : 95;
 
-      cam.updateMatrixWorld();
-      const camRight = new THREE.Vector3();
-      const camUp = new THREE.Vector3();
-      const camBack = new THREE.Vector3();
-      cam.matrixWorld.extractBasis(camRight, camUp, camBack);
-      camUp.normalize();
-
       const currentDir = new THREE.Vector3()
         .subVectors(cam.position, controls.target)
         .normalize();
       const nodeVec = new THREE.Vector3(node.x, node.y, node.z);
       const newCamPos = nodeVec.clone().add(currentDir.clone().multiplyScalar(camDistance));
 
-      // Push the look-at point ABOVE the node so the node lands below center,
-      // leaving the upper portion of the screen for the 3-line text block.
-      const lookOffsetDown = isMobile ? 9 : 6;
-      const newTarget = nodeVec.clone().add(camUp.multiplyScalar(lookOffsetDown));
+      // Target = node center exactly. This becomes the OrbitControls pivot,
+      // so the sphere stays glued to the screen centre even when the user
+      // drags or pinches to rotate the view.
+      const newTarget = nodeVec.clone();
 
       fg.cameraPosition(
         { x: newCamPos.x, y: newCamPos.y, z: newCamPos.z },
