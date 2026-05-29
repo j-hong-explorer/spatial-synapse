@@ -339,14 +339,17 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
     const occluderGeo = new THREE.SphereGeometry(occluderRadius, 20, 14);
     const occluderMat = new THREE.MeshBasicMaterial({
       colorWrite: false,
-      depthWrite: true,
-      depthTest: true,
+      // CRITICAL: must NOT write to depth — otherwise the sphere's front face
+      // z lands in the depth buffer and hides the visible sprite (whose z is
+      // the sphere CENTER, slightly farther). Stencil-only is all we need.
+      depthWrite: false,
+      depthTest: false,
       stencilWrite: true,
       stencilRef: 1,
       stencilFunc: THREE.AlwaysStencilFunc,
       stencilZPass: THREE.ReplaceStencilOp,
       stencilZFail: THREE.ReplaceStencilOp,
-      stencilFail: THREE.KeepStencilOp,
+      stencilFail: THREE.ReplaceStencilOp,
     });
     const occluder = new THREE.Mesh(occluderGeo, occluderMat);
     occluder.renderOrder = -1; // opaque pass, drawn before transparent links
@@ -681,9 +684,12 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
       <header className="absolute top-0 left-0 right-0 px-5 md:px-10 pt-5 md:pt-6 z-30 pointer-events-none">
         <div className="flex flex-col items-center text-center md:items-start md:text-left md:flex-row md:justify-between gap-5 md:gap-0">
           <div className="pointer-events-auto">
-            <div className="font-thin text-accent/90 tracking-tight leading-none text-[36px] md:text-[39px]">
+            <Link
+              href="/"
+              className="font-thin text-accent/85 hover:text-accent transition-colors tracking-normal leading-none text-[36px] md:text-[39px] block"
+            >
               Spatial Synapse
-            </div>
+            </Link>
             <p className="mt-3 text-[10px] md:text-[11px] text-muted/60 leading-snug max-w-[290px] md:max-w-md break-keep mx-auto md:mx-0">
               AI로 정리하는 내 머릿속 공간 아이디어 아카이브
             </p>
@@ -708,7 +714,7 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
       {/* Selection info — 3 lines centered above the (now lowered) main sphere */}
       {selectedNode && (
         <div
-          className="absolute top-[18%] md:top-[22%] left-0 right-0 z-20 px-6 flex flex-col items-center text-center gap-3 md:gap-4 transition-opacity duration-300"
+          className="absolute top-[26%] md:top-[30%] left-0 right-0 z-20 px-6 flex flex-col items-center text-center gap-3 md:gap-4 transition-opacity duration-300"
           style={{ opacity: isTransitioning ? 0 : 1, pointerEvents: isTransitioning ? "none" : "auto" }}
         >
           <p className="text-2xl md:text-3xl font-thin text-accent leading-tight break-keep max-w-[80vw] md:max-w-[640px]">
