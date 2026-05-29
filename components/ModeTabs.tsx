@@ -14,11 +14,11 @@ export function ModeTabs() {
   return (
     <nav
       className={
-        // Mobile: full-width row, 3 equal segments, larger text so it reads as
-        // a primary navigation. Desktop: compact, right-aligned, small.
+        // Mobile: full-width row, 3 equal segments.
+        // Desktop: centered, larger text (2× previous) — main navigation tone.
         "flex w-full md:w-auto items-center " +
-        "justify-between md:justify-end gap-0 md:gap-6 " +
-        "uppercase tracking-[0.22em] md:tracking-[0.2em] tabular pointer-events-auto"
+        "justify-between md:justify-center gap-0 md:gap-12 " +
+        "uppercase tracking-[0.22em] md:tracking-[0.32em] tabular pointer-events-auto"
       }
     >
       {MODES.map((m) => {
@@ -29,13 +29,13 @@ export function ModeTabs() {
             href={m.href}
             aria-current={active ? "page" : undefined}
             className={
-              "flex-1 md:flex-none text-center md:text-right " +
-              "text-[13px] md:text-xs " +
+              "flex-1 md:flex-none text-center " +
+              "text-[13px] md:text-[26px] " +
               "py-1 md:py-0 " +
               "transition-colors " +
               (active
-                ? "text-accent font-medium md:font-normal"
-                : "text-muted/60 hover:text-accent/80")
+                ? "text-accent font-medium md:font-light"
+                : "text-muted/50 hover:text-accent/80")
             }
           >
             {m.label}

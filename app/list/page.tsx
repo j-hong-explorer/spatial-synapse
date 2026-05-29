@@ -32,6 +32,13 @@ export default async function ListPage() {
               AI로 정리하는 내 머릿속 공간 아이디어 아카이브
             </p>
           </div>
+          {/* Mobile-only — tabs under title in flow */}
+          <div className="md:hidden w-full">
+            <ModeTabs />
+          </div>
+        </div>
+        {/* Desktop-only — large centered top-of-screen tabs */}
+        <div className="hidden md:flex absolute top-7 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
           <ModeTabs />
         </div>
       </header>

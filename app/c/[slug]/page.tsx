@@ -25,7 +25,7 @@ export default async function ConceptPage({
   const flowImages = concept.images.slice(1);
 
   return (
-    <main className="relative">
+    <main className="relative bg-bg">
       {/* Fixed back link — text/destination depends on whether the user came
           from Brain or Dice. Wrapped in Suspense because useSearchParams() is
           a dynamic API and would otherwise opt the whole page out of SSG. */}
@@ -35,6 +35,14 @@ export default async function ConceptPage({
 
       {/* Bumps the view count for this slug once on mount. Silent. */}
       <ViewBumper slug={concept.slug} />
+
+      {/* All content sits inside a 9:16-aspect viewport-tall column on desktop
+          (matches the cover image's natural ratio); full width on mobile.
+          Empty space on either side stays the page bg (black). */}
+      <div
+        className="mx-auto relative"
+        style={{ maxWidth: "min(100vw, calc(100svh * 9 / 16))" }}
+      >
 
       {/* Cover */}
       <section className="relative h-[100svh] w-full overflow-hidden">
@@ -134,6 +142,7 @@ export default async function ConceptPage({
           </Reveal>
         )}
       </div>
+      </div>{/* /9:16 column */}
     </main>
   );
 }

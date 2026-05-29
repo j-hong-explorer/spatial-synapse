@@ -172,7 +172,7 @@ export function DiceRoller({ concepts }: { concepts: Concept[] }) {
 
   return (
     <main className="relative min-h-[100svh] w-full overflow-hidden flex flex-col bg-bg">
-      <header className="px-5 md:px-10 pt-5 md:pt-6 z-30">
+      <header className="px-5 md:px-10 pt-5 md:pt-6 z-30 relative">
         <div className="flex flex-col items-center text-center md:items-start md:text-left md:flex-row md:justify-between gap-5 md:gap-0">
           <div>
             <Link
@@ -186,9 +186,17 @@ export function DiceRoller({ concepts }: { concepts: Concept[] }) {
               AI로 정리하는 내 머릿속 공간 아이디어 아카이브
             </p>
           </div>
-          <ModeTabs />
+          {/* Mobile-only — tabs under title in flow */}
+          <div className="md:hidden w-full">
+            <ModeTabs />
+          </div>
         </div>
       </header>
+
+      {/* Desktop-only — large centered top-of-screen tabs */}
+      <div className="hidden md:flex absolute top-7 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
+        <ModeTabs />
+      </div>
 
       {/* Stage — visual layer only. The interactive overlay below handles taps. */}
       <div

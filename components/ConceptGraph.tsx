@@ -760,10 +760,18 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
                 AI로 정리하는 내 머릿속 공간 아이디어 아카이브
               </p>
             </div>
-            <ModeTabs />
+            {/* Mobile-only — tabs sit under the title in the header flow */}
+            <div className="md:hidden w-full">
+              <ModeTabs />
+            </div>
           </div>
         </div>
       </header>
+
+      {/* Desktop-only — large centered top-of-screen tabs */}
+      <div className="hidden md:flex absolute top-7 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
+        <ModeTabs />
+      </div>
 
       {/* Bottom-right counter — desktop only so it doesn't collide on mobile */}
       <div className="hidden md:block absolute bottom-10 right-10 z-20 pointer-events-none text-xs uppercase tracking-[0.3em] text-muted/70 tabular">
