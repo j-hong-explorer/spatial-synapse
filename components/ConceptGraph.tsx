@@ -816,16 +816,23 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
         </div>
       )}
 
-      {/* "Connections · N" label — positioned between the main sphere bottom
-          and the page bottom (the footer is hidden when a node is selected). */}
+      {/* "Connections · N" pill — dim backdrop so it reads cleanly over the
+          graph behind it, matching the header / selection panel treatment. */}
       {selectedNode && connections.length > 0 && (
         <div
-          className="absolute bottom-24 md:bottom-28 left-0 right-0 z-20 text-center transition-opacity duration-300 pointer-events-none"
+          className="absolute bottom-24 md:bottom-28 left-0 right-0 z-20 flex justify-center transition-opacity duration-300 pointer-events-none"
           style={{ opacity: isTransitioning ? 0 : 1 }}
         >
-          <p className="text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-muted/70 tabular">
+          <span
+            className="inline-block px-4 py-1.5 rounded-full text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-muted/80 tabular"
+            style={{
+              backgroundColor: "rgba(10,10,10,0.78)",
+              backdropFilter: "blur(14px)",
+              WebkitBackdropFilter: "blur(14px)",
+            }}
+          >
             Connections · {connections.length}
-          </p>
+          </span>
         </div>
       )}
 
