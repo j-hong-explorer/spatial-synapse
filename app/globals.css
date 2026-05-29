@@ -118,23 +118,30 @@ body {
   }
 }
 
-/* View transition: smooth crossfade with a slow, gentle zoom. Longer
-   duration + ease-out curve so the zoom feels like a calm camera pull
-   rather than a snap. */
+/* View transition setup.
+   ROOT (the rest of the page): no animation — destination page's text and
+   content appear immediately, so the cover morph never hides the title.
+   COVER (named groups like cover-<slug>): gentle fade + slight zoom. */
 ::view-transition-group(*) {
   animation: none !important;
 }
 ::view-transition-old(*) {
-  animation: ss-fade-out 4200ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: ss-fade-out 1200ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
   transform-origin: center;
 }
 ::view-transition-new(*) {
-  animation: ss-fade-in 4200ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: ss-fade-in 1200ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
   transform-origin: center;
+}
+/* Root overrides — must come AFTER the * rules to win (same specificity). */
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none !important;
 }
 @keyframes ss-fade-out {
   from { opacity: 1; transform: scale(1); }
-  to   { opacity: 0; transform: scale(1.05); }
+  to   { opacity: 0; transform: scale(1.04); }
 }
 @keyframes ss-fade-in {
   from { opacity: 0; transform: scale(0.96); }
