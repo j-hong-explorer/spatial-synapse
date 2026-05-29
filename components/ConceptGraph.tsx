@@ -297,9 +297,11 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
         map: texture, // may be undefined initially; preload effect swaps it in
         transparent: true,
         opacity: 1,
-        // Treat circular (alpha ≥ 0.5) pixels as opaque so they write to the depth buffer.
-        // This is what occludes link capsules that pass through the sphere volume.
-        alphaTest: 0.5,
+        // Treat circular pixels as opaque so they write to the depth buffer and
+        // occlude link capsules passing through the sphere volume. Threshold is
+        // 0.3 (not 0.5) so the soft edge fade is also opaque — otherwise links
+        // poke through the rim of the selected sphere.
+        alphaTest: 0.3,
         depthWrite: true,
         depthTest: true,
       });
