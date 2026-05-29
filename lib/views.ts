@@ -47,3 +47,26 @@ export async function incrementView(slug: string): Promise<void> {
     console.warn("incrementView failed:", e);
   }
 }
+
+// ---------- Site-wide visit counter ----------
+
+const VISITS_KEY = "visits:total";
+
+export async function getVisits(): Promise<number> {
+  if (!redis) return 0;
+  try {
+    const v = await redis.get<number | string | null>(VISITS_KEY);
+    return typeof v === "number" ? v : Number(v) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+export async function incrementVisits(): Promise<void> {
+  if (!redis) return;
+  try {
+    await redis.incr(VISITS_KEY);
+  } catch (e) {
+    console.warn("incrementVisits failed:", e);
+  }
+}

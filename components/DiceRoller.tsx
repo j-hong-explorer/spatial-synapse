@@ -177,13 +177,13 @@ export function DiceRoller({ concepts }: { concepts: Concept[] }) {
 
   return (
     <main className="relative min-h-[100svh] w-full overflow-hidden flex flex-col bg-bg">
-      <header className="px-5 md:px-10 py-4 md:py-5 z-30">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-0">
+      <header className="px-5 md:px-10 pt-5 md:pt-6 z-30">
+        <div className="flex flex-col items-center text-center md:items-start md:text-left md:flex-row md:justify-between gap-5 md:gap-0">
           <div>
-            <div className="tabular text-[10px] md:text-xs uppercase tracking-[0.18em] md:tracking-[0.2em] text-muted">
-              Spatial Synapse<span className="md:hidden"><br />by Jaehong Park</span><span className="hidden md:inline"> by Jaehong Park</span>
+            <div className="font-light text-accent tracking-tight leading-none text-[24px] md:text-[26px]">
+              Spatial Synapse
             </div>
-            <p className="mt-1.5 text-[10px] md:text-[11px] text-muted/55 leading-snug max-w-[270px] md:max-w-md break-keep">
+            <p className="mt-2 text-[10px] md:text-[11px] text-muted/60 leading-snug max-w-[290px] md:max-w-md break-keep mx-auto md:mx-0">
               AI로 정리하는 내 머릿속 공간 아이디어 아카이브
             </p>
           </div>

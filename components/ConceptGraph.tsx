@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import * as THREE from "three";
 import type { Concept } from "@/lib/concepts";
 import { ModeTabs } from "./ModeTabs";
+import { SiteFooter } from "./SiteFooter";
 
 // ForceGraph3D uses WebGL + Three.js → must be client-only (no SSR)
 const ForceGraph3D = dynamic(() => import("react-force-graph-3d"), {
@@ -151,15 +152,25 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
         raf = requestAnimationFrame(orbit);
       }, 800);
 
-      // Stop orbit on user interaction
-      const stop = () => {
+      // Stop orbit on user interaction — but ignore the first ~1.5s of events
+      // because mobile browsers often fire a synthetic touchstart on page entry,
+      // which would otherwise kill the orbit immediately.
+      const grace = Date.now() + 1500;
+      const stop = (e: Event) => {
+        if (Date.now() < grace) return;
+        // Only react to events that actually came from the user, on the canvas
+        // area. Synthetic events from iOS sometimes have no isTrusted.
+        if (!e.isTrusted) return;
         stopped = true;
         clearTimeout(orbitStart);
         cancelAnimationFrame(raf);
+        window.removeEventListener("pointerdown", stop);
+        window.removeEventListener("wheel", stop);
+        window.removeEventListener("touchstart", stop);
       };
-      window.addEventListener("pointerdown", stop, { once: true });
-      window.addEventListener("wheel", stop, { once: true });
-      window.addEventListener("touchstart", stop, { once: true });
+      window.addEventListener("pointerdown", stop);
+      window.addEventListener("wheel", stop);
+      window.addEventListener("touchstart", stop);
     }, 120);
 
     return () => {
@@ -610,13 +621,13 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
   return (
     <main className="relative w-full h-[100svh] overflow-hidden bg-bg">
       {/* Top nav */}
-      <header className="absolute top-0 left-0 right-0 px-5 md:px-10 py-4 md:py-5 z-30 pointer-events-none">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-0">
+      <header className="absolute top-0 left-0 right-0 px-5 md:px-10 pt-5 md:pt-6 z-30 pointer-events-none">
+        <div className="flex flex-col items-center text-center md:items-start md:text-left md:flex-row md:justify-between gap-5 md:gap-0">
           <div className="pointer-events-auto">
-            <div className="tabular text-[10px] md:text-xs uppercase tracking-[0.18em] md:tracking-[0.2em] text-muted">
-              Spatial Synapse<span className="md:hidden"><br />by Jaehong Park</span><span className="hidden md:inline"> by Jaehong Park</span>
+            <div className="font-light text-accent tracking-tight leading-none text-[24px] md:text-[26px]">
+              Spatial Synapse
             </div>
-            <p className="mt-1.5 text-[10px] md:text-[11px] text-muted/55 leading-snug max-w-[270px] md:max-w-md break-keep">
+            <p className="mt-2 text-[10px] md:text-[11px] text-muted/60 leading-snug max-w-[290px] md:max-w-md break-keep mx-auto md:mx-0">
               AI로 정리하는 내 머릿속 공간 아이디어 아카이브
             </p>
           </div>
@@ -624,16 +635,13 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
         </div>
       </header>
 
-      {/* Bottom-left hint */}
-      <div className="absolute bottom-5 md:bottom-10 left-5 md:left-10 z-20 pointer-events-none text-[9px] md:text-xs uppercase tracking-[0.25em] md:tracking-[0.3em] text-muted/70 tabular">
-        <span className="md:hidden">Drag · Pinch · Tap</span>
-        <span className="hidden md:inline">Drag · Pinch · Tap a node</span>
-      </div>
-
       {/* Bottom-right counter — desktop only so it doesn't collide on mobile */}
       <div className="hidden md:block absolute bottom-10 right-10 z-20 pointer-events-none text-xs uppercase tracking-[0.3em] text-muted/70 tabular">
         {graphData.nodes.length} concepts · {graphData.links.length} edges
       </div>
+
+      {/* Centred footer: hint + email/instagram + visit counter */}
+      <SiteFooter hint="Drag · Pinch · Tap" />
 
       {/* Selection info — left side card */}
       {selectedNode && (
