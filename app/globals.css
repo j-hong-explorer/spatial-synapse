@@ -118,17 +118,26 @@ body {
   }
 }
 
-/* View transition: morph concept cover from dice face → detail hero.
-   Shorter so it lands close to the dice's last frame without a long
-   "shrink" feeling. */
+/* View transition: simple crossfade between dice face and the detail cover.
+   We override the browser default which morphs each snapshot's size — that
+   was causing the dice to balloon out and then snap down to the detail
+   page's full-screen hero. Now they just crossfade in place. */
 ::view-transition-group(*) {
-  animation-duration: 500ms;
-  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  animation: none !important;
 }
-::view-transition-old(*),
+::view-transition-old(*) {
+  animation: ss-fade-out 320ms ease-out forwards;
+}
 ::view-transition-new(*) {
-  animation-duration: 500ms;
-  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  animation: ss-fade-in 320ms ease-out forwards;
+}
+@keyframes ss-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes ss-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
