@@ -22,6 +22,10 @@ export function BackLink() {
   return (
     <Link
       href={href}
+      // `replace` instead of push — keeps history clean so a swipe-back from
+      // the NEXT detail page lands on Brain/Dice (where you started) instead
+      // of bouncing back through previously-viewed detail pages.
+      replace
       className="fixed bottom-5 left-5 md:bottom-8 md:left-8 z-50 text-xs uppercase tracking-[0.2em] text-accent hover:text-white transition-colors px-4 py-2.5 rounded-full border border-white/15"
       style={{
         background: "rgba(15, 15, 15, 0.55)",
