@@ -21,7 +21,7 @@ export default async function ListPage() {
       <header className="sticky top-0 z-30 px-5 md:px-10 pt-5 md:pt-6 pb-4 md:pb-5 bg-bg/80 backdrop-blur-md">
         <div className="flex flex-col items-center text-center md:items-start md:text-left md:flex-row md:justify-between gap-5 md:gap-0">
           <div>
-            <div className="font-light text-accent/90 tracking-tight leading-none text-[36px] md:text-[39px]">
+            <div className="font-thin text-accent/90 tracking-tight leading-none text-[36px] md:text-[39px]">
               Spatial Synapse
             </div>
             <p className="mt-3 text-[10px] md:text-[11px] text-muted/60 leading-snug max-w-[290px] md:max-w-md break-keep mx-auto md:mx-0">

@@ -286,21 +286,13 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
         tex.anisotropy = 4;
         circularTextureCache.current.set(url, tex);
 
-        // Swap into the corresponding sprite + occluder if they already exist
+        // Swap texture into the visible sprite (occluder is invisible and
+        // doesn't need a texture)
         const sprite = spriteCache.current.get(c.slug);
         if (sprite) {
           const mat = sprite.material as THREE.SpriteMaterial;
           mat.map = tex;
           mat.needsUpdate = true;
-          // The invisible occluder sprite (parent's userData.occluder) shares
-          // shape but writes stencil so links can be masked out completely.
-          const parent = sprite.parent as THREE.Group | null;
-          const occ = parent?.userData?.occluder as THREE.Sprite | undefined;
-          if (occ) {
-            const occMat = occ.material as THREE.SpriteMaterial;
-            occMat.map = tex;
-            occMat.needsUpdate = true;
-          }
         }
       };
       img.src = url;
@@ -339,25 +331,25 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
     sprite.scale.set(sizeVal, sizeVal, 1);
     sprite.renderOrder = 2;
 
-    // Invisible occluder sprite — same shape, but only writes stencil + depth.
-    // Drawn before transparent links (opaque pass).
-    const occluderMat = new THREE.SpriteMaterial({
-      map: texture,
-      transparent: false,
-      alphaTest: 0.05,
+    // Invisible occluder — a REAL 3D sphere mesh (not a sprite). Sprite
+    // materials seem to drop stencil writes in this renderer; a regular
+    // MeshBasicMaterial sphere writes stencil reliably. The sphere's
+    // on-screen silhouette is the disc we want to mask.
+    const occluderRadius = sizeVal / 2;
+    const occluderGeo = new THREE.SphereGeometry(occluderRadius, 20, 14);
+    const occluderMat = new THREE.MeshBasicMaterial({
+      colorWrite: false,
       depthWrite: true,
       depthTest: true,
-      colorWrite: false, // invisible
       stencilWrite: true,
       stencilRef: 1,
       stencilFunc: THREE.AlwaysStencilFunc,
       stencilZPass: THREE.ReplaceStencilOp,
-      stencilZFail: THREE.KeepStencilOp,
+      stencilZFail: THREE.ReplaceStencilOp,
       stencilFail: THREE.KeepStencilOp,
     });
-    const occluder = new THREE.Sprite(occluderMat);
-    occluder.scale.copy(sprite.scale);
-    occluder.renderOrder = -1; // draw first so stencil is set before links
+    const occluder = new THREE.Mesh(occluderGeo, occluderMat);
+    occluder.renderOrder = -1; // opaque pass, drawn before transparent links
 
     const group = new THREE.Group();
     group.add(occluder);
@@ -380,7 +372,7 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
     const key = `${src}|${tgt}`;
     let group = linkObjectCache.current.get(key);
     if (!group) {
-      const radius = 0.20;
+      const radius = 0.10; // thinner edges
       const mat = new THREE.MeshBasicMaterial({
         color: 0xcccccc,
         transparent: true,
@@ -502,11 +494,11 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
       const sel = selectedNode?.id;
       mat.color.setHex(0xffffff);
       if (!sel) {
-        mat.opacity = 0.35;                                  // default — clearly visible
+        mat.opacity = 0.22;                                  // default — visible but thin
       } else if (src === sel || tgt === sel) {
-        mat.opacity = 0.8;                                   // selected connections — bright but softened
+        mat.opacity = 0.55;                                  // selected connections — softened
       } else {
-        mat.opacity = 0.05;                                  // unrelated — faded
+        mat.opacity = 0.015;                                 // unrelated — nearly invisible
       }
       mat.needsUpdate = true;
     });
@@ -533,11 +525,11 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
           scaleMult = 0.93;
           isSelected = true;
         } else if (connectedIdsRef.current.has(id)) {
-          opacity = 0.9;
-          scaleMult = 0.85;
+          opacity = 0.55;       // softer than before so the main sphere dominates
+          scaleMult = 0.8;
         } else {
-          opacity = 0.25;
-          scaleMult = 0.7;
+          opacity = 0.08;       // nearly invisible — main spotlight effect
+          scaleMult = 0.6;
         }
       }
       mat.opacity = opacity;
@@ -547,10 +539,10 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
       const newSize = base * scaleMult;
       sprite.scale.set(newSize, newSize, 1);
 
-      // Keep the invisible occluder in sync so the stencil mask matches.
+      // Keep the invisible mesh occluder in sync so the stencil mask matches.
       const parent = sprite.parent as THREE.Group | null;
-      const occluder = parent?.userData?.occluder as THREE.Sprite | undefined;
-      if (occluder) occluder.scale.set(newSize, newSize, 1);
+      const occluder = parent?.userData?.occluder as THREE.Mesh | undefined;
+      if (occluder) occluder.scale.set(scaleMult, scaleMult, scaleMult);
     });
   }, [selectedNode]);
 
@@ -607,19 +599,25 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
       node.x !== undefined && node.y !== undefined && node.z !== undefined
     ) {
       const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-      // A bit farther out than before so the smaller selected sphere still
-      // reads cleanly and leaves space for the info panel + connection row.
       const camDistance = isMobile ? 80 : 95;
 
       cam.updateMatrixWorld();
+      const camRight = new THREE.Vector3();
+      const camUp = new THREE.Vector3();
+      const camBack = new THREE.Vector3();
+      cam.matrixWorld.extractBasis(camRight, camUp, camBack);
+      camUp.normalize();
+
       const currentDir = new THREE.Vector3()
         .subVectors(cam.position, controls.target)
         .normalize();
       const nodeVec = new THREE.Vector3(node.x, node.y, node.z);
       const newCamPos = nodeVec.clone().add(currentDir.clone().multiplyScalar(camDistance));
 
-      // Look straight at the node — it sits in the visual center of the screen.
-      const newTarget = nodeVec.clone();
+      // Push the look-at point ABOVE the node so the node lands below center,
+      // leaving the upper portion of the screen for the 3-line text block.
+      const lookOffsetDown = isMobile ? 9 : 6;
+      const newTarget = nodeVec.clone().add(camUp.multiplyScalar(lookOffsetDown));
 
       fg.cameraPosition(
         { x: newCamPos.x, y: newCamPos.y, z: newCamPos.z },
@@ -683,7 +681,7 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
       <header className="absolute top-0 left-0 right-0 px-5 md:px-10 pt-5 md:pt-6 z-30 pointer-events-none">
         <div className="flex flex-col items-center text-center md:items-start md:text-left md:flex-row md:justify-between gap-5 md:gap-0">
           <div className="pointer-events-auto">
-            <div className="font-light text-accent/90 tracking-tight leading-none text-[36px] md:text-[39px]">
+            <div className="font-thin text-accent/90 tracking-tight leading-none text-[36px] md:text-[39px]">
               Spatial Synapse
             </div>
             <p className="mt-3 text-[10px] md:text-[11px] text-muted/60 leading-snug max-w-[290px] md:max-w-md break-keep mx-auto md:mx-0">
@@ -707,16 +705,16 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
         <VisitCounter />
       </div>
 
-      {/* Selection info — left/top-ish card with an explicit Open button */}
+      {/* Selection info — 3 lines centered above the (now lowered) main sphere */}
       {selectedNode && (
         <div
-          className="absolute top-[38%] md:top-[44%] -translate-y-1/2 left-6 md:left-10 z-20 max-w-[260px] md:max-w-[340px] transition-opacity duration-300"
+          className="absolute top-[18%] md:top-[22%] left-0 right-0 z-20 px-6 flex flex-col items-center text-center gap-3 md:gap-4 transition-opacity duration-300"
           style={{ opacity: isTransitioning ? 0 : 1, pointerEvents: isTransitioning ? "none" : "auto" }}
         >
-          <p className="text-2xl md:text-3xl font-light text-accent leading-tight mb-3 break-keep">
+          <p className="text-2xl md:text-3xl font-thin text-accent leading-tight break-keep max-w-[80vw] md:max-w-[640px]">
             {selectedNode.title}
           </p>
-          <div className="text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-muted tabular mb-4">
+          <div className="text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-muted tabular max-w-[80vw]">
             {selectedNode.tags.join("  ·  ")}
           </div>
           <button
@@ -725,7 +723,7 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
             onClick={() => handleNodeClick(selectedNode)}
             className="inline-flex items-center gap-2 border border-accent/30 hover:bg-accent hover:text-bg hover:border-accent rounded-full py-2.5 px-5 text-[10px] md:text-[11px] uppercase tracking-[0.25em] text-accent/90 tabular transition-colors"
           >
-            Open this concept
+            Open this synapse
             <span aria-hidden>→</span>
           </button>
         </div>
@@ -746,29 +744,39 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
             style={{ scrollbarWidth: "none" }}
           >
             {/* w-max + mx-auto centers when contents fit; allows horizontal scroll when they don't */}
-            <div className="flex w-max mx-auto gap-5 md:gap-6 px-6 items-end">
-              {connections.map(({ other }) => (
-                <button
-                  key={other!.id}
-                  type="button"
-                  onClick={() => handleNodeClick(other)}
-                  className="group flex-shrink-0 flex flex-col items-center w-[78px] md:w-[90px]"
-                >
-                  {/* short vertical line — reads as the link to the main sphere */}
-                  <div className="w-px h-10 md:h-12 bg-gradient-to-t from-white/35 to-transparent mx-auto" />
-                  <div className="mt-1 w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden border border-white/10 group-hover:border-white/40 transition-colors">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={other!.image}
-                      alt={other!.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <span className="mt-2 text-[10px] md:text-[11px] text-accent/80 group-hover:text-accent transition-colors leading-tight text-center break-keep line-clamp-2">
-                    {other!.title}
-                  </span>
-                </button>
-              ))}
+            <div className="flex w-max mx-auto gap-4 md:gap-5 px-6 items-end">
+              {connections.map(({ other }, i) => {
+                // Lift the outer items so the row reads as a gentle ∪
+                // (cradling the main sphere from below).
+                const n = connections.length;
+                const center = (n - 1) / 2;
+                const dist = Math.abs(i - center);
+                // ~14px lift per step from center; clamp to keep it gentle
+                const liftPx = Math.min(dist * 14, 36);
+                return (
+                  <button
+                    key={other!.id}
+                    type="button"
+                    onClick={() => handleNodeClick(other)}
+                    className="group flex-shrink-0 flex flex-col items-center w-[72px] md:w-[86px]"
+                    style={{ transform: `translateY(-${liftPx}px)` }}
+                  >
+                    {/* short vertical line — reads as the link to the main sphere */}
+                    <div className="w-px h-7 md:h-9 bg-gradient-to-t from-white/22 to-transparent mx-auto" />
+                    <div className="mt-1 w-11 h-11 md:w-12 md:h-12 rounded-full overflow-hidden border border-white/10 group-hover:border-white/40 transition-colors">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={other!.image}
+                        alt={other!.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <span className="mt-2 text-[10px] md:text-[11px] text-accent/80 group-hover:text-accent transition-colors leading-tight text-center break-keep line-clamp-2">
+                      {other!.title}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
