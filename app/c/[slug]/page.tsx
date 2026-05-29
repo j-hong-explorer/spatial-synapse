@@ -51,7 +51,13 @@ export default async function ConceptPage({
           </div>
         </ViewTransition>
         <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/30 to-bg/10" />
-        <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-10 pb-24 md:pb-32">
+        {/* Text container gets its OWN view-transition-name so it stacks above
+            the cover snapshot during the transition — text stays visible from
+            frame zero instead of being hidden under the morphing cover image. */}
+        <div
+          className="absolute inset-0 flex flex-col justify-end p-6 md:p-10 pb-24 md:pb-32"
+          style={{ viewTransitionName: "detail-meta" }}
+        >
           <div className="max-w-4xl mx-auto w-full">
             <h1 className="text-[2.7rem] md:text-[5.4rem] font-light tracking-tight text-accent leading-[1.05] break-keep">
               {concept.title}

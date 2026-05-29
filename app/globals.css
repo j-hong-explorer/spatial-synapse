@@ -139,6 +139,13 @@ body {
 ::view-transition-new(root) {
   animation: none !important;
 }
+/* Detail-meta (title + tags on the detail page) — its own snapshot, stacked
+   ABOVE the cover snapshot, shown instantly so text never disappears. */
+::view-transition-group(detail-meta),
+::view-transition-old(detail-meta),
+::view-transition-new(detail-meta) {
+  animation: none !important;
+}
 @keyframes ss-fade-out {
   from { opacity: 1; transform: scale(1); }
   to   { opacity: 0; transform: scale(1.04); }
