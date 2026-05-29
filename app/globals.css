@@ -146,6 +146,18 @@ body {
 ::view-transition-new(detail-meta) {
   animation: none !important;
 }
+/* Disable the browser's default `plus-lighter` blend + isolation on the
+   image-pair containers — that blend is what was washing the title out
+   while the cover snapshot was fading. Plain compositing keeps the text
+   pin-sharp from frame 1. */
+::view-transition-image-pair(*) {
+  isolation: auto;
+  mix-blend-mode: normal;
+}
+::view-transition-old(*),
+::view-transition-new(*) {
+  mix-blend-mode: normal;
+}
 @keyframes ss-fade-out {
   from { opacity: 1; transform: scale(1); }
   to   { opacity: 0; transform: scale(1.04); }
