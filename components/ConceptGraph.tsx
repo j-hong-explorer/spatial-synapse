@@ -742,23 +742,33 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
 
   return (
     <main className="relative w-full h-[100svh] overflow-hidden bg-bg">
-      {/* Top nav */}
-      <header className="absolute top-0 left-0 right-0 px-5 md:px-10 pt-5 md:pt-6 z-30 pointer-events-none">
-        <div className="flex flex-col items-center text-center md:items-start md:text-left md:flex-row md:justify-between gap-5 md:gap-0">
-          <div className="pointer-events-auto">
-            <button
-              type="button"
-              onClick={handleHomeReset}
-              className="font-thin text-accent/85 hover:text-accent transition-colors leading-none text-[36px] md:text-[39px] block"
-              style={{ letterSpacing: "0.02em" }}
-            >
-              Spatial Synapse
-            </button>
-            <p className="mt-3 text-[10px] md:text-[11px] text-muted/60 leading-snug max-w-[290px] md:max-w-md break-keep mx-auto md:mx-0">
-              AI로 정리하는 내 머릿속 공간 아이디어 아카이브
-            </p>
+      {/* Top nav. The wrapper gets a dim backdrop ONLY when a node is selected,
+          so the title/tabs stay readable over the big sphere image behind them. */}
+      <header className="absolute top-0 left-0 right-0 z-30 pointer-events-none">
+        <div
+          className="px-5 md:px-10 pt-5 md:pt-6 pb-3 md:pb-4 transition-colors duration-300"
+          style={{
+            backgroundColor: selectedNode ? "rgba(10,10,10,0.5)" : "transparent",
+            backdropFilter: selectedNode ? "blur(6px)" : "none",
+            WebkitBackdropFilter: selectedNode ? "blur(6px)" : "none",
+          }}
+        >
+          <div className="flex flex-col items-center text-center md:items-start md:text-left md:flex-row md:justify-between gap-5 md:gap-0">
+            <div className="pointer-events-auto">
+              <button
+                type="button"
+                onClick={handleHomeReset}
+                className="font-thin text-accent/85 hover:text-accent transition-colors leading-none text-[36px] md:text-[39px] block"
+                style={{ letterSpacing: "0.02em" }}
+              >
+                Spatial Synapse
+              </button>
+              <p className="mt-3 text-[10px] md:text-[11px] text-muted/60 leading-snug max-w-[290px] md:max-w-md break-keep mx-auto md:mx-0">
+                AI로 정리하는 내 머릿속 공간 아이디어 아카이브
+              </p>
+            </div>
+            <ModeTabs />
           </div>
-          <ModeTabs />
         </div>
       </header>
 
@@ -771,36 +781,46 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
           hint + email/instagram row inside fades out when a node is selected. */}
       <SiteFooter hint="Drag · Pinch · Tap" dimmed={!!selectedNode} />
 
-      {/* Selection info — 3 lines centered above the (now lowered) main sphere */}
+      {/* Selection info — 3 lines centered above the (now lowered) main sphere.
+          Inner container has its own dim backdrop so the title stays legible
+          even when the bright sphere image is right behind it. */}
       {selectedNode && (
         <div
-          className="absolute top-[26%] md:top-[30%] left-0 right-0 z-20 px-6 flex flex-col items-center text-center gap-3 md:gap-4 transition-opacity duration-300"
+          className="absolute top-[26%] md:top-[30%] left-0 right-0 z-20 px-4 md:px-6 flex justify-center transition-opacity duration-300"
           style={{ opacity: isTransitioning ? 0 : 1, pointerEvents: isTransitioning ? "none" : "auto" }}
         >
-          <p className="text-2xl md:text-3xl font-thin text-accent leading-tight break-keep max-w-[80vw] md:max-w-[640px]">
-            {selectedNode.title}
-          </p>
-          <div className="text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-muted tabular max-w-[80vw]">
-            {selectedNode.tags.join("  ·  ")}
-          </div>
-          <button
-            type="button"
-            // Selecting again with the same id triggers the navigate branch in handleNodeClick.
-            onClick={() => handleNodeClick(selectedNode)}
-            className="inline-flex items-center gap-2 border border-accent/30 hover:bg-accent hover:text-bg hover:border-accent rounded-full py-2.5 px-5 text-[10px] md:text-[11px] uppercase tracking-[0.25em] text-accent/90 tabular transition-colors"
+          <div
+            className="flex flex-col items-center text-center gap-3 md:gap-4 rounded-2xl px-5 md:px-7 py-4 md:py-5 max-w-[88vw] md:max-w-[640px]"
+            style={{
+              backgroundColor: "rgba(10,10,10,0.5)",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+            }}
           >
-            Open this synapse
-            <span aria-hidden>→</span>
-          </button>
+            <p className="text-2xl md:text-3xl font-thin text-accent leading-tight break-keep">
+              {selectedNode.title}
+            </p>
+            <div className="text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-muted tabular">
+              {selectedNode.tags.join("  ·  ")}
+            </div>
+            <button
+              type="button"
+              // Selecting again with the same id triggers the navigate branch in handleNodeClick.
+              onClick={() => handleNodeClick(selectedNode)}
+              className="inline-flex items-center gap-2 border border-accent/40 hover:bg-accent hover:text-bg hover:border-accent rounded-full py-2.5 px-5 text-[10px] md:text-[11px] uppercase tracking-[0.25em] text-accent/90 tabular transition-colors"
+            >
+              Open this synapse
+              <span aria-hidden>→</span>
+            </button>
+          </div>
         </div>
       )}
 
-      {/* "Connections · N" label sits well below the main sphere so the two
-          never collide. Tappable thumbnails are gone — each connected sphere
-          in the 3D graph now carries its own floating title. */}
+      {/* "Connections · N" label — positioned between the main sphere bottom
+          and the page bottom (the footer is hidden when a node is selected). */}
       {selectedNode && connections.length > 0 && (
         <div
-          className="absolute bottom-10 left-0 right-0 z-20 text-center transition-opacity duration-300 pointer-events-none"
+          className="absolute bottom-24 md:bottom-28 left-0 right-0 z-20 text-center transition-opacity duration-300 pointer-events-none"
           style={{ opacity: isTransitioning ? 0 : 1 }}
         >
           <p className="text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-muted/70 tabular">
