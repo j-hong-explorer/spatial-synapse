@@ -125,11 +125,11 @@ body {
   animation: none !important;
 }
 ::view-transition-old(*) {
-  animation: ss-fade-out 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: ss-fade-out 1400ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
   transform-origin: center;
 }
 ::view-transition-new(*) {
-  animation: ss-fade-in 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: ss-fade-in 1400ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
   transform-origin: center;
 }
 @keyframes ss-fade-out {
