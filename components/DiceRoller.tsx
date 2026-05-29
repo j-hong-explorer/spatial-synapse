@@ -137,7 +137,7 @@ export function DiceRoller({ concepts }: { concepts: Concept[] }) {
     const slug = faces[resultFace].slug;
     const t1 = window.setTimeout(() => {
       router.push(`/c/${slug}?from=dice`);
-    }, 220);
+    }, 350);
     settleTimers.current.push(t1);
   };
 
