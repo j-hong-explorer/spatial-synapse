@@ -774,7 +774,7 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
             </div>
             {/* Mobile-only — tabs sit under the title in the header flow */}
             <div className="md:hidden w-full">
-              <ModeTabs />
+              <ModeTabs onCurrentClick={handleHomeReset} />
             </div>
           </div>
         </div>

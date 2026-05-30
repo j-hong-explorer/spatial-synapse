@@ -9,7 +9,10 @@ const MODES = [
   { href: "/list", label: "List"  },
 ] as const;
 
-export function ModeTabs() {
+// Optional `onCurrentClick`: fires when the user taps the tab for the page
+// they're already on. Used by Brain to reset selection + camera (so tapping
+// "Brain" while a node is selected behaves like a home reset).
+export function ModeTabs({ onCurrentClick }: { onCurrentClick?: () => void } = {}) {
   const path = usePathname();
   return (
     <nav
@@ -29,6 +32,12 @@ export function ModeTabs() {
             key={m.href}
             href={m.href}
             aria-current={active ? "page" : undefined}
+            onClick={(e) => {
+              if (active && onCurrentClick) {
+                e.preventDefault();
+                onCurrentClick();
+              }
+            }}
             className={
               "flex-1 md:flex-none text-center " +
               "text-[13px] md:text-[18px] " +
