@@ -608,6 +608,15 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
     ) {
       const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
       const camDistance = isMobile ? 80 : 95;
+      // Push the look-at point ABOVE the node (in screen-up direction) so the
+      // sphere settles in the lower half of the screen — fully visible below
+      // the title + tags + "Open this synapse" button.
+      const lookOffsetUp = isMobile ? 14 : 9;
+
+      cam.updateMatrixWorld();
+      const camUp = new THREE.Vector3();
+      cam.matrixWorld.extractBasis(new THREE.Vector3(), camUp, new THREE.Vector3());
+      camUp.normalize();
 
       const currentDir = new THREE.Vector3()
         .subVectors(cam.position, controls.target)
@@ -615,10 +624,7 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
       const nodeVec = new THREE.Vector3(node.x, node.y, node.z);
       const newCamPos = nodeVec.clone().add(currentDir.clone().multiplyScalar(camDistance));
 
-      // Target = node center exactly. This becomes the OrbitControls pivot,
-      // so the sphere stays glued to the screen centre even when the user
-      // drags or pinches to rotate the view.
-      const newTarget = nodeVec.clone();
+      const newTarget = nodeVec.clone().add(camUp.multiplyScalar(lookOffsetUp));
 
       fg.cameraPosition(
         { x: newCamPos.x, y: newCamPos.y, z: newCamPos.z },
@@ -827,7 +833,7 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
           graph behind it, matching the header / selection panel treatment. */}
       {selectedNode && connections.length > 0 && (
         <div
-          className="absolute bottom-24 md:bottom-28 left-0 right-0 z-20 flex justify-center transition-opacity duration-300 pointer-events-none"
+          className="absolute bottom-14 md:bottom-20 left-0 right-0 z-20 flex justify-center transition-opacity duration-300 pointer-events-none"
           style={{ opacity: isTransitioning ? 0 : 1 }}
         >
           <span
