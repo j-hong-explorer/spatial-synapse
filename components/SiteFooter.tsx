@@ -30,7 +30,9 @@ export function SiteFooter({ hint, dimmed = false }: { hint: string; dimmed?: bo
     >
       {/* Everything — hint, email, IG, visit counter — only on the initial Brain view */}
       <div className="flex flex-col items-center gap-2">
-        <div className="text-[9px] md:text-xs uppercase tracking-[0.25em] md:tracking-[0.3em] text-muted/70 tabular">
+        {/* Hint sits a line above the contact row so it reads as a different
+            kind of info (a navigation cue, not an address). */}
+        <div className="mb-4 md:mb-5 text-[9px] md:text-xs uppercase tracking-[0.25em] md:tracking-[0.3em] text-muted/70 tabular">
           {hint}
         </div>
 

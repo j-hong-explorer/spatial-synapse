@@ -120,11 +120,13 @@ export function ConceptGraph({ concepts }: { concepts: Concept[] }) {
     return () => clearInterval(id);
   }, []);
 
-  // Position camera close enough that nodes fill the view, then gentle orbit until user interacts
+  // Position camera farther out so the node cluster sits in the centre band
+  // of the screen — clear of the title at the top and the footer at the
+  // bottom. Then gentle orbit until the user interacts.
   useEffect(() => {
     let stopped = false;
     let raf = 0;
-    const distance = 220;
+    const distance = 320;
 
     // Poll for graph to be ready, then snap camera close + start orbit
     const setup = setInterval(() => {
